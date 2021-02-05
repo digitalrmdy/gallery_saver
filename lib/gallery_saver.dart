@@ -4,8 +4,8 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:gallery_saver/files.dart';
 import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart';
+import 'package:path_provider/path_provider.dart';
 
 class GallerySaver {
   static const String channelName = 'gallery_saver';
@@ -18,7 +18,8 @@ class GallerySaver {
   static const MethodChannel _channel = const MethodChannel(channelName);
 
   ///saves video from provided temp path and optional album name in gallery
-  static Future<bool> saveVideo(String path, {String albumName}) async {
+  static Future<bool> saveVideo(String path,
+      {String albumName, Map<String, String> headers}) async {
     File tempFile;
     if (path == null || path.isEmpty) {
       throw ArgumentError(pleaseProvidePath);
@@ -27,7 +28,7 @@ class GallerySaver {
       throw ArgumentError(fileIsNotVideo);
     }
     if (!isLocalFilePath(path)) {
-      tempFile = await _downloadFile(path);
+      tempFile = await _downloadFile(path, headers: headers);
       path = tempFile.path;
     }
     bool result = await _channel.invokeMethod(
@@ -41,7 +42,8 @@ class GallerySaver {
   }
 
   ///saves image from provided temp path and optional album name in gallery
-  static Future<bool> saveImage(String path, {String albumName}) async {
+  static Future<bool> saveImage(String path,
+      {String albumName, Map<String, String> headers}) async {
     File tempFile;
     if (path == null || path.isEmpty) {
       throw ArgumentError(pleaseProvidePath);
@@ -50,7 +52,7 @@ class GallerySaver {
       throw ArgumentError(fileIsNotImage);
     }
     if (!isLocalFilePath(path)) {
-      tempFile = await _downloadFile(path);
+      tempFile = await _downloadFile(path, headers: headers);
       path = tempFile.path;
     }
 
@@ -65,10 +67,13 @@ class GallerySaver {
     return result;
   }
 
-  static Future<File> _downloadFile(String url) async {
+  static Future<File> _downloadFile(String url,
+      {Map<String, String> headers}) async {
     print(url);
     http.Client _client = new http.Client();
-    var req = await _client.get(Uri.parse(url));
+    var req = headers != null
+        ? await _client.get(Uri.parse(url), headers: headers)
+        : await _client.get(Uri.parse(url));
     var bytes = req.bodyBytes;
     String dir = (await getTemporaryDirectory()).path;
     File file = new File('$dir/${basename(url)}');
